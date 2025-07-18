@@ -304,13 +304,7 @@ class BaseSignIn {
 			// 执行签到
 			const signInSuccess = await this.signIn();
 
-			if (signInSuccess) {
-				logger.info(`${this.platformConfig.displayName} - 签到成功`);
-				return true;
-			} else {
-				logger.error(`${this.platformConfig.displayName} - 签到失败`);
-				return false;
-			}
+			return signInSuccess;
 		} catch (error) {
 			logger.error(
 				`${this.platformConfig.displayName} - 签到流程出错: ${error.message}`
