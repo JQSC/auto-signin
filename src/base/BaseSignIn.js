@@ -46,9 +46,17 @@ class BaseSignIn {
 				this.platformName
 			);
 
+			// 浏览器上下文配置
+			const contextOptions = {
+				userAgent:
+					'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+				viewport: { width: 1290, height: 1080 },
+			};
+
 			if (storageStatePath) {
 				// 使用保存的存储状态创建浏览器上下文
 				this.context = await this.browser.newContext({
+					...contextOptions,
 					storageState: storageStatePath,
 				});
 				logger.info(
@@ -56,20 +64,12 @@ class BaseSignIn {
 				);
 			} else {
 				// 创建新的浏览器上下文
-				this.context = await this.browser.newContext();
+				this.context = await this.browser.newContext(contextOptions);
 				logger.info(`${this.platformConfig.displayName} - 创建新的浏览器会话`);
 			}
 
 			// 创建页面
 			this.page = await this.context.newPage();
-
-			// 设置用户代理
-			await this.page.setUserAgent(
-				'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-			);
-
-			// 设置视口大小
-			await this.page.setViewportSize({ width: 1920, height: 1080 });
 
 			logger.info(`${this.platformConfig.displayName} - 浏览器初始化成功`);
 		} catch (error) {
@@ -151,6 +151,67 @@ class BaseSignIn {
 		} catch (error) {
 			logger.warn(
 				`${this.platformConfig.displayName} - 输入文本到 ${selector} 失败: ${error.message}`
+			);
+			return false;
+		}
+	}
+
+	/**
+	 * 等待登录弹窗出现
+	 * @param {number} timeout - 超时时间
+	 * @returns {boolean} 弹窗是否出现
+	 */
+	async waitForLoginModal(timeout = 10000) {
+		try {
+			const modalSelector = this.platformConfig.selectors.loginModal;
+			await this.page.waitForSelector(modalSelector, { timeout });
+			logger.info(`${this.platformConfig.displayName} - 登录弹窗已出现`);
+			return true;
+		} catch (error) {
+			logger.warn(
+				`${this.platformConfig.displayName} - 等待登录弹窗超时: ${error.message}`
+			);
+			return false;
+		}
+	}
+
+	/**
+	 * 点击登录按钮并等待弹窗
+	 * @returns {boolean} 是否成功打开登录弹窗
+	 */
+	async openLoginModal() {
+		try {
+			const loginButtonSelector = this.platformConfig.selectors.loginButton;
+
+			// 尝试多个可能的登录按钮选择器
+			const selectors = loginButtonSelector.split(', ');
+			let buttonClicked = false;
+
+			for (const selector of selectors) {
+				const button = await this.page.$(selector.trim());
+				if (button) {
+					await button.click();
+					buttonClicked = true;
+					logger.info(
+						`${
+							this.platformConfig.displayName
+						} - 点击登录按钮: ${selector.trim()}`
+					);
+					break;
+				}
+			}
+
+			if (!buttonClicked) {
+				logger.error(`${this.platformConfig.displayName} - 找不到登录按钮`);
+				return false;
+			}
+
+			// 等待登录弹窗出现
+			await this.page.waitForTimeout(1000);
+			return await this.waitForLoginModal();
+		} catch (error) {
+			logger.error(
+				`${this.platformConfig.displayName} - 打开登录弹窗失败: ${error.message}`
 			);
 			return false;
 		}

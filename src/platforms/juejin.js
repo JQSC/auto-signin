@@ -18,10 +18,13 @@ class JuejinSignIn extends BaseSignIn {
 			// 等待页面加载完成
 			await this.page.waitForTimeout(2000);
 
-			// 检查是否存在用户头像或用户名等登录状态标识
-			const userAvatar = await this.page.$('.avatar-image, .user-avatar');
-			const userInfo = await this.page.$('.user-info, .user-name');
-			const loginButton = await this.page.$('.login-button, .header-login');
+			// 使用配置中的选择器检查登录状态
+			const userAvatar = await this.page.$(
+				this.platformConfig.selectors.userAvatar
+			);
+			const loginButton = await this.page.$(
+				this.platformConfig.selectors.loginButton
+			);
 
 			// 如果存在登录按钮，说明未登录
 			if (loginButton) {
@@ -51,27 +54,28 @@ class JuejinSignIn extends BaseSignIn {
 		try {
 			logger.info(`${this.platformConfig.displayName} - 开始登录流程`);
 
-			// 点击登录按钮
-			const loginButtonClicked = await this.safeClick('.login-button');
-			if (!loginButtonClicked) {
-				// 尝试其他可能的登录按钮选择器
-				await this.safeClick('.header-login');
-				await this.safeClick('[data-v-login]');
+			// 打开登录弹窗
+			const modalOpened = await this.openLoginModal();
+			if (!modalOpened) {
+				logger.error(`${this.platformConfig.displayName} - 无法打开登录弹窗`);
+				return false;
 			}
 
-			// 等待登录表单加载
-			await this.page.waitForTimeout(2000);
+			// 等待弹窗完全加载
+			await this.page.waitForTimeout(1000);
 
 			// 选择密码登录方式
-			const passwordLoginTab = await this.page.$('.login-type-password');
+			const passwordTab = this.platformConfig.selectors.loginTabPassword;
+			const passwordLoginTab = await this.page.$(passwordTab);
 			if (passwordLoginTab) {
 				await passwordLoginTab.click();
 				await this.page.waitForTimeout(1000);
+				logger.info(`${this.platformConfig.displayName} - 切换到密码登录`);
 			}
 
 			// 输入用户名
 			const usernameInput = await this.safeInput(
-				'input[name="loginPhoneOrEmail"], input[placeholder*="手机号"], input[placeholder*="邮箱"]',
+				this.platformConfig.selectors.usernameInput,
 				this.credentials.username
 			);
 
@@ -82,7 +86,7 @@ class JuejinSignIn extends BaseSignIn {
 
 			// 输入密码
 			const passwordInput = await this.safeInput(
-				'input[name="loginPassword"], input[type="password"]',
+				this.platformConfig.selectors.passwordInput,
 				this.credentials.password
 			);
 
@@ -93,7 +97,7 @@ class JuejinSignIn extends BaseSignIn {
 
 			// 点击登录按钮
 			const loginSubmit = await this.safeClick(
-				'.btn-login, .login-btn, button[type="submit"]'
+				this.platformConfig.selectors.submitButton
 			);
 			if (!loginSubmit) {
 				logger.error(`${this.platformConfig.displayName} - 找不到登录提交按钮`);
@@ -101,7 +105,7 @@ class JuejinSignIn extends BaseSignIn {
 			}
 
 			// 等待登录完成
-			await this.page.waitForTimeout(3000);
+			await this.page.waitForTimeout(2000);
 
 			// 检查是否登录成功
 			const loginSuccess = await this.isLoggedIn();
@@ -111,11 +115,17 @@ class JuejinSignIn extends BaseSignIn {
 				return true;
 			} else {
 				// 检查是否有错误提示
-				const errorMsg = await this.page.$('.error-msg, .login-error');
+				const errorMsg = await this.page.$(
+					'.error-msg, .login-error, .error-tip'
+				);
 				if (errorMsg) {
 					const errorText = await errorMsg.textContent();
 					logger.error(
 						`${this.platformConfig.displayName} - 登录失败: ${errorText}`
+					);
+				} else {
+					logger.error(
+						`${this.platformConfig.displayName} - 登录失败，未知原因`
 					);
 				}
 				return false;
@@ -137,14 +147,18 @@ class JuejinSignIn extends BaseSignIn {
 			logger.info(`${this.platformConfig.displayName} - 开始签到`);
 
 			// 导航到签到页面
-			await this.page.goto('https://juejin.cn/user/center/signin');
+			await this.page.goto(
+				'https://juejin.cn/user/center/signin?from=main_page'
+			);
 			await this.page.waitForLoadState('networkidle');
 
 			// 等待页面加载完成
 			await this.page.waitForTimeout(2000);
 
 			// 检查是否已经签到
-			const alreadySignedIn = await this.page.$('.signed, .already-signed');
+			const alreadySignedIn = await this.page.$(
+				this.platformConfig.selectors.signedInIndicator
+			);
 			if (alreadySignedIn) {
 				logger.info(`${this.platformConfig.displayName} - 今日已签到`);
 				return true;
@@ -152,7 +166,7 @@ class JuejinSignIn extends BaseSignIn {
 
 			// 查找签到按钮
 			const signInButton = await this.page.$(
-				'.signin-btn, .sign-btn, .checkin-btn'
+				this.platformConfig.selectors.signInButton
 			);
 			if (!signInButton) {
 				logger.warn(`${this.platformConfig.displayName} - 找不到签到按钮`);
@@ -162,35 +176,31 @@ class JuejinSignIn extends BaseSignIn {
 			// 点击签到按钮
 			await signInButton.click();
 
+			logger.info(`${this.platformConfig.displayName} - 点击签到按钮`);
+
 			// 等待签到完成
-			await this.page.waitForTimeout(3000);
+			await this.page.waitForTimeout(2000);
 
 			// 检查签到结果
 			const signInSuccess = await this.page.$(
-				'.signed, .sign-success, .checkin-success'
+				this.platformConfig.selectors.signedInIndicator
 			);
-			const signInMessage = await this.page.$('.sign-msg, .checkin-msg');
 
-			if (signInSuccess || signInMessage) {
-				if (signInMessage) {
-					const messageText = await signInMessage.textContent();
-					logger.info(
-						`${this.platformConfig.displayName} - 签到结果: ${messageText}`
+			if (signInSuccess) {
+				logger.info(`${this.platformConfig.displayName} - 签到成功`);
+				return true;
+			} else {
+				// 检查是否有错误提示
+				const errorMsg = await this.page.$('.error-msg, .sign-error');
+				if (errorMsg) {
+					const errorText = await errorMsg.textContent();
+					logger.error(
+						`${this.platformConfig.displayName} - 签到失败: ${errorText}`
 					);
 				}
-				return true;
-			}
 
-			// 检查是否有错误提示
-			const errorMsg = await this.page.$('.error-msg, .sign-error');
-			if (errorMsg) {
-				const errorText = await errorMsg.textContent();
-				logger.error(
-					`${this.platformConfig.displayName} - 签到失败: ${errorText}`
-				);
+				return false;
 			}
-
-			return false;
 		} catch (error) {
 			logger.error(
 				`${this.platformConfig.displayName} - 签到过程出错: ${error.message}`

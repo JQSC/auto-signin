@@ -19,9 +19,15 @@ class BilibiliSignIn extends BaseSignIn {
 			await this.page.waitForTimeout(2000);
 
 			// 检查是否存在用户头像或用户信息
-			const userAvatar = await this.page.$('.header-avatar-wrap, .user-avatar');
-			const userInfo = await this.page.$('.user-info, .user-name');
-			const loginStatus = await this.page.$('.header-login-entry');
+			const userAvatar = await this.page.$(
+				this.platformConfig.selectors.userAvatar
+			);
+			const userInfo = await this.page.$(
+				this.platformConfig.selectors.userInfo
+			);
+			const loginStatus = await this.page.$(
+				this.platformConfig.selectors.loginButton
+			);
 
 			// 如果存在登录按钮，说明未登录
 			if (loginStatus) {
@@ -48,28 +54,28 @@ class BilibiliSignIn extends BaseSignIn {
 		try {
 			logger.info(`${this.platformConfig.displayName} - 开始登录流程`);
 
-			// 点击登录按钮
-			const loginButtonClicked = await this.safeClick('.header-login-entry');
-			if (!loginButtonClicked) {
-				logger.error(`${this.platformConfig.displayName} - 找不到登录按钮`);
+			// 打开登录弹窗
+			const modalOpened = await this.openLoginModal();
+			if (!modalOpened) {
+				logger.error(`${this.platformConfig.displayName} - 无法打开登录弹窗`);
 				return false;
 			}
 
-			// 等待登录页面加载
+			// 等待弹窗完全加载
 			await this.page.waitForTimeout(3000);
 
 			// 选择密码登录
-			const passwordTab = await this.page.$(
-				'.tab-item[data-tab-name="password"]'
-			);
-			if (passwordTab) {
-				await passwordTab.click();
+			const passwordTab = this.platformConfig.selectors.loginTabPassword;
+			const passwordLoginTab = await this.page.$(passwordTab);
+			if (passwordLoginTab) {
+				await passwordLoginTab.click();
 				await this.page.waitForTimeout(1000);
+				logger.info(`${this.platformConfig.displayName} - 切换到密码登录`);
 			}
 
 			// 输入用户名
 			const usernameInput = await this.safeInput(
-				'#login-username, input[placeholder*="手机号"], input[placeholder*="邮箱"]',
+				this.platformConfig.selectors.usernameInput,
 				this.credentials.username
 			);
 
@@ -80,7 +86,7 @@ class BilibiliSignIn extends BaseSignIn {
 
 			// 输入密码
 			const passwordInput = await this.safeInput(
-				'#login-passwd, input[type="password"]',
+				this.platformConfig.selectors.passwordInput,
 				this.credentials.password
 			);
 
@@ -90,7 +96,9 @@ class BilibiliSignIn extends BaseSignIn {
 			}
 
 			// 点击登录按钮
-			const loginSubmit = await this.safeClick('.btn-login, .login-btn');
+			const loginSubmit = await this.safeClick(
+				this.platformConfig.selectors.submitButton
+			);
 			if (!loginSubmit) {
 				logger.error(`${this.platformConfig.displayName} - 找不到登录提交按钮`);
 				return false;
@@ -100,7 +108,9 @@ class BilibiliSignIn extends BaseSignIn {
 			await this.page.waitForTimeout(5000);
 
 			// 检查是否需要验证码或其他验证
-			const captcha = await this.page.$('.geetest_canvas_img, .captcha');
+			const captcha = await this.page.$(
+				'.geetest_canvas_img, .captcha, .verify-form'
+			);
 			if (captcha) {
 				logger.warn(
 					`${this.platformConfig.displayName} - 需要验证码，请手动处理`
@@ -117,11 +127,17 @@ class BilibiliSignIn extends BaseSignIn {
 				return true;
 			} else {
 				// 检查是否有错误提示
-				const errorMsg = await this.page.$('.error-msg, .login-error');
+				const errorMsg = await this.page.$(
+					'.error-msg, .login-error, .error-tip'
+				);
 				if (errorMsg) {
 					const errorText = await errorMsg.textContent();
 					logger.error(
 						`${this.platformConfig.displayName} - 登录失败: ${errorText}`
+					);
+				} else {
+					logger.error(
+						`${this.platformConfig.displayName} - 登录失败，未知原因`
 					);
 				}
 				return false;
@@ -150,14 +166,18 @@ class BilibiliSignIn extends BaseSignIn {
 			await this.page.waitForTimeout(3000);
 
 			// 检查是否已经签到
-			const alreadySignedIn = await this.page.$('.signed, .task-completed');
+			const alreadySignedIn = await this.page.$(
+				this.platformConfig.selectors.signedInIndicator
+			);
 			if (alreadySignedIn) {
 				logger.info(`${this.platformConfig.displayName} - 今日已签到`);
 				return true;
 			}
 
 			// 查找签到按钮
-			let signInButton = await this.page.$('.go-btn, .task-btn, .signin-btn');
+			let signInButton = await this.page.$(
+				this.platformConfig.selectors.signInButton
+			);
 
 			if (!signInButton) {
 				// 尝试其他可能的签到入口
@@ -201,7 +221,7 @@ class BilibiliSignIn extends BaseSignIn {
 
 			// 检查签到结果
 			const signInSuccess = await this.page.$(
-				'.signed, .task-completed, .success'
+				this.platformConfig.selectors.signedInIndicator
 			);
 			const signInMessage = await this.page.$('.task-msg, .result-msg');
 

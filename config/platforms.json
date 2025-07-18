@@ -5,15 +5,17 @@
       "displayName": "掘金",
       "enabled": true,
       "url": "https://juejin.cn",
-      "loginUrl": "https://juejin.cn/login",
       "signInUrl": "https://juejin.cn/user/center/signin",
       "selectors": {
-        "loginButton": ".login-button",
-        "usernameInput": "input[name='loginPhoneOrEmail']",
-        "passwordInput": "input[name='loginPassword']",
-        "submitButton": ".btn-login",
-        "signInButton": ".signin-btn",
-        "signedInIndicator": ".signed"
+        "loginButton": ".login-button, .nav-menu-item:has-text('登录'), [class*='nav-menu-item']:has-text('登录')",
+        "loginModal": ".auth-form, .login-dialog, .auth-modal",
+        "loginTabPassword": ".clickable:has-text('密码登录'), .other-login-box .clickable",
+        "usernameInput": "input[name='loginPhoneOrEmail'], input[placeholder*='手机号'], input[placeholder*='邮箱'], input[type='text']:first-of-type",
+        "passwordInput": "input[name='loginPassword'], input[type='password']",
+        "submitButton": ".btn.btn-login, .button-group .btn-login, .btn-login:not(:has-text('注册')), .login-btn:not(:has-text('注册'))",
+        "signInButton": ".signin, .signin-btn, .sign-btn, .checkin-btn",
+        "signedInIndicator": ".signedin, .already-signed",
+        "userAvatar": ".avatar-wrapper, .avatar-wrapper .avatar-img, .user-avatar"
       }
     },
     {
@@ -21,15 +23,18 @@
       "displayName": "B站",
       "enabled": true,
       "url": "https://www.bilibili.com",
-      "loginUrl": "https://passport.bilibili.com/login",
       "signInUrl": "https://www.bilibili.com/v/task/draw",
       "selectors": {
-        "loginButton": ".header-login-entry",
-        "usernameInput": "#login-username",
-        "passwordInput": "#login-passwd",
-        "submitButton": ".btn-login",
-        "signInButton": ".go-btn",
-        "signedInIndicator": ".signed"
+        "loginButton": ".header-login-entry, .nav-header-login",
+        "loginModal": ".login-dialog, .login-modal, .passport-login",
+        "loginTabPassword": ".tab-item[data-tab-name='password'], .login-tab-password",
+        "usernameInput": "#login-username, input[placeholder*='手机号'], input[placeholder*='邮箱'], input[type='text']:first-of-type",
+        "passwordInput": "#login-passwd, input[type='password']",
+        "submitButton": ".btn-login, .login-btn, button[type='submit']",
+        "signInButton": ".go-btn, .task-btn, .signin-btn",
+        "signedInIndicator": ".signed, .task-completed",
+        "userAvatar": ".header-avatar-wrap, .user-avatar",
+        "userInfo": ".user-info, .user-name"
       }
     }
   ]
