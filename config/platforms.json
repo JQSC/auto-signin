@@ -4,8 +4,8 @@
       "name": "juejin",
       "displayName": "掘金",
       "enabled": true,
-      "url": "https://juejin.cn",
-      "signInUrl": "https://juejin.cn/user/center/signin",
+      "url": "https://juejin.cn/user/center/signin?from=main_page",
+      "signInUrl": "https://juejin.cn/user/center/signin?from=main_page",
       "selectors": {
         "loginButton": ".login-button, .nav-menu-item:has-text('登录'), [class*='nav-menu-item']:has-text('登录')",
         "loginModal": ".auth-form, .login-dialog, .auth-modal",

@@ -146,14 +146,12 @@ class JuejinSignIn extends BaseSignIn {
 		try {
 			logger.info(`${this.platformConfig.displayName} - 开始签到`);
 
-			// 导航到签到页面
-			await this.page.goto(
-				'https://juejin.cn/user/center/signin?from=main_page'
-			);
-			await this.page.waitForLoadState('networkidle');
+			// // 导航到签到页面
+			// await this.page.goto(this.platformConfig.signInUrl);
+			// await this.page.waitForLoadState('networkidle');
 
-			// 等待页面加载完成
-			await this.page.waitForTimeout(2000);
+			// // 等待页面加载完成
+			// await this.page.waitForTimeout(2000);
 
 			// 检查是否已经签到
 			const alreadySignedIn = await this.page.$(
