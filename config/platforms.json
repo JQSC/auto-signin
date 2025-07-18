@@ -1,0 +1,36 @@
+{
+  "platforms": [
+    {
+      "name": "juejin",
+      "displayName": "掘金",
+      "enabled": true,
+      "url": "https://juejin.cn",
+      "loginUrl": "https://juejin.cn/login",
+      "signInUrl": "https://juejin.cn/user/center/signin",
+      "selectors": {
+        "loginButton": ".login-button",
+        "usernameInput": "input[name='loginPhoneOrEmail']",
+        "passwordInput": "input[name='loginPassword']",
+        "submitButton": ".btn-login",
+        "signInButton": ".signin-btn",
+        "signedInIndicator": ".signed"
+      }
+    },
+    {
+      "name": "bilibili",
+      "displayName": "B站",
+      "enabled": true,
+      "url": "https://www.bilibili.com",
+      "loginUrl": "https://passport.bilibili.com/login",
+      "signInUrl": "https://www.bilibili.com/v/task/draw",
+      "selectors": {
+        "loginButton": ".header-login-entry",
+        "usernameInput": "#login-username",
+        "passwordInput": "#login-passwd",
+        "submitButton": ".btn-login",
+        "signInButton": ".go-btn",
+        "signedInIndicator": ".signed"
+      }
+    }
+  ]
+}
