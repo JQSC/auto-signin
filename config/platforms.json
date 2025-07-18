@@ -21,7 +21,7 @@
     {
       "name": "bilibili",
       "displayName": "B站",
-      "enabled": true,
+      "enabled": false,
       "url": "https://www.bilibili.com",
       "signInUrl": "https://www.bilibili.com/v/task/draw",
       "selectors": {
