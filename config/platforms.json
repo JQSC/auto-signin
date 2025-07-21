@@ -13,8 +13,8 @@
         "usernameInput": "input[name='loginPhoneOrEmail'], input[placeholder*='手机号'], input[placeholder*='邮箱'], input[type='text']:first-of-type",
         "passwordInput": "input[name='loginPassword'], input[type='password']",
         "submitButton": ".btn.btn-login, .button-group .btn-login, .btn-login:not(:has-text('注册')), .login-btn:not(:has-text('注册'))",
-        "signInButton": ".signin, .signin-btn, .sign-btn, .checkin-btn",
-        "signedInIndicator": ".signedin, .already-signed",
+        "signInButton": ".signin .btn",
+        "signedInIndicator": ".signedin",
         "userAvatar": ".avatar-wrapper, .avatar-wrapper .avatar-img, .user-avatar"
       }
     },
