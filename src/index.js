@@ -3,6 +3,7 @@ import config from './utils/config.js';
 import sessionManager from './utils/session.js';
 import JuejinSignIn from './platforms/juejin.js';
 import BilibiliSignIn from './platforms/bilibili.js';
+import CronScheduler from './scheduler/cron.js';
 import chalk from 'chalk';
 
 /**
@@ -16,7 +17,7 @@ const PLATFORM_CLASSES = {
 /**
  * 自动签到主程序
  */
-class AutoSignIn {
+export class AutoSignIn {
 	constructor() {
 		this.platforms = config.getPlatforms();
 		this.results = [];
@@ -195,6 +196,7 @@ class AutoSignIn {
 async function main() {
 	try {
 		const autoSignIn = new AutoSignIn();
+		const scheduler = new CronScheduler();
 
 		// 检查命令行参数
 		const args = process.argv.slice(2);
@@ -219,6 +221,11 @@ ${chalk.yellow.bold('选项：')}
   --sessions, -s     显示所有保存的登录状态
   --clear-sessions   清除所有登录状态
   --clear-session    清除指定平台的登录状态
+  --schedule, -c     启动定时任务（默认每天8点执行）
+  --schedule-time    指定定时任务执行时间（cron表达式）
+  --stop-schedule    停止定时任务
+  --schedule-status  查看定时任务状态
+  --run-now         立即执行一次签到任务
 
 ${chalk.yellow.bold('平台名称：')}
   juejin          只执行掘金签到
@@ -232,6 +239,15 @@ ${chalk.yellow.bold('示例：')}
   ${chalk.gray('node src/index.js --sessions')}         # 显示所有登录状态
   ${chalk.gray('node src/index.js --clear-sessions')}   # 清除所有登录状态
   ${chalk.gray('node src/index.js --clear-session juejin')}  # 清除掘金登录状态
+  ${chalk.gray(
+		'node src/index.js --schedule'
+	)}         # 启动定时任务（每天8点）
+  ${chalk.gray(
+		'node src/index.js --schedule-time "0 9 * * *"'
+	)} # 启动定时任务（每天9点）
+  ${chalk.gray('node src/index.js --stop-schedule')}    # 停止定时任务
+  ${chalk.gray('node src/index.js --schedule-status')}  # 查看定时任务状态
+  ${chalk.gray('node src/index.js --run-now')}          # 立即执行一次签到
         `)
 				);
 				return;
@@ -304,6 +320,69 @@ ${chalk.yellow.bold('示例：')}
 				} else {
 					console.log(chalk.red(`❌ 未知的平台: ${platformName}`));
 				}
+			} else if (command === '--schedule' || command === '-c') {
+				// 启动定时任务
+				const cronExpression = args[1] || '0 8 * * *'; // 默认每天8点
+				const parallel = args.includes('--parallel');
+				scheduler.start(cronExpression, { parallel });
+
+				// 保持程序运行
+				console.log(chalk.blue('按 Ctrl+C 停止定时任务'));
+				process.on('SIGINT', () => {
+					scheduler.stop();
+					process.exit(0);
+				});
+
+				// 防止程序退出
+				setInterval(() => {}, 1000);
+			} else if (command === '--schedule-time') {
+				// 使用指定时间启动定时任务
+				const cronExpression = args[1];
+				if (!cronExpression) {
+					console.log(chalk.yellow('⚠️  请指定cron表达式'));
+					console.log(
+						chalk.gray('例如: node src/index.js --schedule-time "0 9 * * *"')
+					);
+					console.log(chalk.gray('常用表达式:'));
+					console.log(chalk.gray('  "0 8 * * *"  - 每天8点'));
+					console.log(chalk.gray('  "0 9 * * *"  - 每天9点'));
+					console.log(chalk.gray('  "0 12 * * *" - 每天12点'));
+					console.log(chalk.gray('  "0 20 * * *" - 每天20点'));
+				} else {
+					const parallel = args.includes('--parallel');
+					scheduler.start(cronExpression, { parallel });
+
+					console.log(chalk.blue('按 Ctrl+C 停止定时任务'));
+					process.on('SIGINT', () => {
+						scheduler.stop();
+						process.exit(0);
+					});
+
+					setInterval(() => {}, 1000);
+				}
+			} else if (command === '--stop-schedule') {
+				// 停止定时任务
+				scheduler.stop();
+			} else if (command === '--schedule-status') {
+				// 查看定时任务状态
+				const status = scheduler.getStatus();
+				console.log(chalk.cyan.bold('\n⏰ 定时任务状态'));
+				console.log(chalk.gray('─'.repeat(30)));
+				console.log(
+					`运行状态: ${
+						status.isRunning ? chalk.green('✅ 运行中') : chalk.red('❌ 已停止')
+					}`
+				);
+				console.log(`任务数量: ${chalk.cyan(status.taskCount)}`);
+				if (status.tasks.length > 0) {
+					console.log(`任务列表: ${chalk.yellow(status.tasks.join(', '))}`);
+				}
+				console.log('');
+			} else if (command === '--run-now') {
+				// 立即执行一次签到任务
+				const parallel = args.includes('--parallel');
+				const platforms = args.filter((arg) => PLATFORM_CLASSES[arg]);
+				await scheduler.runNow({ parallel, platforms });
 			} else if (PLATFORM_CLASSES[command]) {
 				await autoSignIn.runSingle(command);
 			} else {

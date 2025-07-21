@@ -1,0 +1,51 @@
+{
+  "defaultSchedule": {
+    "cronExpression": "0 8 * * *",
+    "description": "每天早上8点执行签到",
+    "parallel": false,
+    "platforms": []
+  },
+  "presetSchedules": [
+    {
+      "name": "morning",
+      "cronExpression": "0 8 * * *",
+      "description": "每天早上8点",
+      "parallel": false
+    },
+    {
+      "name": "morning-9am",
+      "cronExpression": "0 9 * * *",
+      "description": "每天早上9点",
+      "parallel": false
+    },
+    {
+      "name": "noon",
+      "cronExpression": "0 12 * * *",
+      "description": "每天中午12点",
+      "parallel": false
+    },
+    {
+      "name": "evening",
+      "cronExpression": "0 20 * * *",
+      "description": "每天晚上8点",
+      "parallel": false
+    },
+    {
+      "name": "workdays-morning",
+      "cronExpression": "0 8 * * 1-5",
+      "description": "工作日早上8点",
+      "parallel": false
+    },
+    {
+      "name": "every-6-hours",
+      "cronExpression": "0 */6 * * *",
+      "description": "每6小时执行一次",
+      "parallel": true
+    }
+  ],
+  "timezone": "Asia/Shanghai",
+  "logLevel": "info",
+  "retryOnFailure": true,
+  "maxRetries": 3,
+  "retryDelay": 300000
+}

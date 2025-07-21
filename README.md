@@ -12,6 +12,9 @@
 - 🛡️ 错误处理和异常恢复
 - 📊 详细的签到结果统计
 - 💾 自动保存登录状态，避免重复登录
+- ⏰ **支持定时任务，每日自动执行签到**
+- 🖥️ 独立的守护进程模式
+- 🎯 灵活的定时配置（支持cron表达式）
 
 ## 项目结构
 
@@ -23,12 +26,19 @@ auto-signin/
 │   ├── platforms/
 │   │   ├── juejin.js              # 掘金签到实现
 │   │   └── bilibili.js            # B站签到实现
+│   ├── scheduler/
+│   │   └── cron.js                # 定时任务调度器
 │   ├── utils/
 │   │   ├── logger.js              # 日志记录工具
-│   │   └── config.js              # 配置管理工具
-│   └── index.js                   # 主程序入口
+│   │   ├── config.js              # 配置管理工具
+│   │   └── scheduleConfig.js      # 定时任务配置管理
+│   ├── index.js                   # 主程序入口
+│   └── daemon.js                  # 守护进程入口
 ├── config/
-│   └── platforms.json             # 平台配置文件
+│   ├── platforms.json             # 平台配置文件
+│   └── schedule.json              # 定时任务配置文件
+├── docs/
+│   └── SCHEDULE.md                # 定时任务详细说明
 ├── sessions/                      # 登录状态保存目录
 ├── logs/                          # 日志文件目录
 ├── .env.example                   # 环境变量模板
@@ -144,6 +154,11 @@ node src/index.js --clear-session juejin
 | `--sessions`, `-s` | 显示所有保存的登录状态 |
 | `--clear-sessions` | 清除所有登录状态 |
 | `--clear-session` | 清除指定平台的登录状态 |
+| `--schedule`, `-c` | 启动定时任务（默认每天8点） |
+| `--schedule-time` | 指定定时任务执行时间（cron表达式） |
+| `--stop-schedule` | 停止定时任务 |
+| `--schedule-status` | 查看定时任务状态 |
+| `--run-now` | 立即执行一次签到任务 |
 | `平台名称` | 只执行指定平台的签到 |
 
 ## 日志说明
@@ -268,26 +283,183 @@ const PLATFORM_CLASSES = {
 3. **反爬虫机制**：建议设置合理的执行间隔，避免被平台检测
 4. **浏览器模式**：开发调试时可以设置 `HEADLESS=false` 来查看浏览器操作过程
 
-## 定时任务
+## ⏰ 定时任务功能
 
-可以使用系统的定时任务来自动执行签到：
+本系统内置了强大的定时任务功能，支持每日自动执行签到，无需手动干预。
 
-### Linux/macOS (crontab)
+### 快速开始
 
 ```bash
-# 编辑 crontab
-crontab -e
+# 启动默认定时任务（每天早上8点执行）
+npm run schedule
 
-# 添加定时任务，每天早上 8 点执行
-0 8 * * * cd /path/to/auto-signin && npm start
+# 或者使用守护进程
+node src/daemon.js
+
+# 指定执行时间（每天早上9点）
+node src/daemon.js --time "0 9 * * *"
+
+# 立即执行一次签到任务
+npm run run-now
 ```
 
-### Windows (任务计划程序)
+### 定时任务命令
 
-1. 打开任务计划程序
-2. 创建基本任务
-3. 设置触发器为每天
-4. 设置操作为启动程序，程序路径为 `node`，参数为项目路径
+```bash
+# 启动定时任务（默认每天8点）
+node src/index.js --schedule
+
+# 指定时间启动定时任务
+node src/index.js --schedule-time "0 9 * * *"
+
+# 查看定时任务状态
+node src/index.js --schedule-status
+
+# 立即执行一次签到
+node src/index.js --run-now
+```
+
+### 守护进程模式
+
+使用独立的守护进程来管理定时任务：
+
+```bash
+# 启动守护进程（默认每天8点）
+node src/daemon.js
+
+# 自定义时间
+node src/daemon.js --time "0 20 * * *"
+
+# 并行模式执行
+node src/daemon.js --parallel
+
+# 只签到指定平台
+node src/daemon.js --platforms "juejin,bilibili"
+
+# 查看帮助
+node src/daemon.js --help
+```
+
+### Cron表达式
+
+支持标准的cron表达式来设置执行时间：
+
+| 表达式 | 说明 |
+|--------|------|
+| `0 8 * * *` | 每天早上8点 |
+| `0 9 * * *` | 每天早上9点 |
+| `0 12 * * *` | 每天中午12点 |
+| `0 20 * * *` | 每天晚上8点 |
+| `0 8 * * 1-5` | 工作日早上8点 |
+| `0 */6 * * *` | 每6小时执行一次 |
+
+### 进程管理
+
+推荐使用 PM2 来管理守护进程：
+
+```bash
+# 安装 PM2
+npm install -g pm2
+
+# 启动守护进程
+pm2 start src/daemon.js --name "auto-signin"
+
+# 查看状态
+pm2 list
+
+# 停止进程
+pm2 stop auto-signin
+
+# 重启进程
+pm2 restart auto-signin
+
+# 开机自启
+pm2 startup
+pm2 save
+```
+
+### 配置文件
+
+可以通过 `config/schedule.json` 自定义定时任务配置：
+
+```json
+{
+  "defaultSchedule": {
+    "cronExpression": "0 8 * * *",
+    "description": "每天早上8点执行签到",
+    "parallel": false,
+    "platforms": []
+  },
+  "timezone": "Asia/Shanghai",
+  "retryOnFailure": true,
+  "maxRetries": 3
+}
+```
+
+### 系统服务配置
+
+#### Linux Systemd
+
+创建服务文件 `/etc/systemd/system/auto-signin.service`：
+
+```ini
+[Unit]
+Description=Auto SignIn Service
+After=network.target
+
+[Service]
+Type=simple
+User=your-username
+WorkingDirectory=/path/to/auto-signin
+ExecStart=/usr/bin/node src/daemon.js
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
+```
+
+启动服务：
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable auto-signin
+sudo systemctl start auto-signin
+```
+
+#### macOS LaunchAgent
+
+创建 `~/Library/LaunchAgents/com.auto-signin.plist`：
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.auto-signin</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/usr/local/bin/node</string>
+        <string>/path/to/auto-signin/src/daemon.js</string>
+    </array>
+    <key>WorkingDirectory</key>
+    <string>/path/to/auto-signin</string>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>KeepAlive</key>
+    <true/>
+</dict>
+</plist>
+```
+
+加载服务：
+
+```bash
+launchctl load ~/Library/LaunchAgents/com.auto-signin.plist
+```
+
+> 📖 **详细说明**：更多定时任务功能的详细说明请查看 [定时任务文档](docs/SCHEDULE.md)
 
 ## 故障排除
 
